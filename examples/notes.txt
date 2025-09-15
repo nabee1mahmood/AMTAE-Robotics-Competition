@@ -1,2 +1,10 @@
 
 sudo i2cdetect -y 1
+
+
+
+sudo nano /boot/firmware/config.txt
+dtoverlay=imx219,cam0,4lane
+rpicam-still --list-cameras
+
+

@@ -1,0 +1,12 @@
+#!/bin/bash
+
+cd /home/x/code/AMTAE-Robotics-Competition/prototype || exit 1
+
+echo "▶️ Starting udp.py..."
+/usr/bin/python3 udp.py &
+
+echo "▶️ Starting controller.py..."
+/usr/bin/python3 controller.py &
+
+echo "✅ Both scripts started."
+wait

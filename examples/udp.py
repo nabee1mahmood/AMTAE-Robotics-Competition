@@ -1,3 +1,4 @@
+# pi_servos.py
 import socket, serial, threading, time
 from driver_servo import set_servo_angle, pwm
 
@@ -13,15 +14,20 @@ sock.bind((UDP_IP, UDP_PORT))
 print(f"📡 Listening on {UDP_PORT}...")
 
 # --- Servo channels ---
-servos = [0, 4]   # 0=claw, 4=arm
-angles  = {ch: 0 for ch in servos}
+servo_a, servo_b, servo_c, servo_d = 12, 13, 14, 15
+servos = [servo_a, servo_b, servo_c, servo_d]
+
+# Current + target angles
+angles  = {ch: 90 for ch in servos}   # start centered
 targets = angles.copy()
-speeds  = {0: 5, 4: 5}
+speeds  = {ch: 5 for ch in servos}
 ALIVE = True
+
+servo_map = {'1': servo_a, '2': servo_b, '3': servo_c, '4': servo_d}
 
 def servo_update(ch, ang):
     set_servo_angle(ch, ang)
-    angles[ch] = ang  
+    angles[ch] = ang
 
 def servo_worker(ch, hz=60):
     period = 1.0 / hz
@@ -37,11 +43,6 @@ def servo_worker(ch, hz=60):
 for ch in servos:
     threading.Thread(target=servo_worker, args=(ch,), daemon=True).start()
 
-def set_targets(batch):
-    for ch, ang in batch.items():
-        ang = max(0, min(180, int(round(ang))))
-        targets[ch] = ang
-
 def kill():
     global ALIVE
     ALIVE = False
@@ -49,29 +50,29 @@ def kill():
     for ch in servos:
         pwm.setServoPulse(ch, 0)
 
-servo_map = {'1': 0, '2': 4}  # claw=0, arm=4
-
 try:
     while True:
         data, addr = sock.recvfrom(1024)
         try:
-            # Expect: "left,right,claw,servo2"
-            parts = data.decode().strip().split(",")
-            left_spd  = int(parts[0])
-            right_spd = int(parts[1])
-            s1 = int(parts[2])   # claw
-            s2 = int(parts[3])   # arm
+            left_spd, right_spd, s1, s2, s3, s4 = map(int, data.decode().strip().split(","))
 
-            # --- Send signed speeds to Nano ---
+            # --- Drive motors (send signed speeds to Nano) ---
             ser.write(f"{left_spd},{right_spd}\n".encode())
 
-            # --- Update servos ---
-            set_targets({
-                servo_map['1']: s1,   # claw
-                servo_map['2']: s2,   # arm
-            })
+            # --- Apply servo nudges (deltas) ---
+            steps = {
+                servo_map['1']: s1,
+                servo_map['2']: s2,
+                servo_map['3']: s3,
+                servo_map['4']: s4,
+            }
+            for ch, delta in steps.items():
+                new_ang = max(0, min(180, angles[ch] + delta))
+                targets[ch] = new_ang
 
-            print(f"Left={left_spd} Right={right_spd} | Claw={s1} Arm={s2}")
+            print(f"Left={left_spd} Right={right_spd} | "
+                  f"S1={angles[servo_a]} S2={angles[servo_b]} "
+                  f"S3={angles[servo_c]} S4={angles[servo_d]}")
 
         except Exception as e:
             print("Parse error:", e)

@@ -1,7 +1,7 @@
 # controller.py
 import pygame, socket, time
 
-PI_IP = "10.171.53.160"
+PI_IP = "10.171.53.155"
 PI_PORT = 5007
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
@@ -40,7 +40,7 @@ while True:
         left_speed, right_speed = speed_val, -speed_val
 
     # --- Joysticks give scaled nudges ---
-    servo1 = nudge_axis(js.get_axis(2))   # left stick X
+    servo1 = nudge_axis(js.get_axis(3))   # left stick X
     servo2 = nudge_axis(-js.get_axis(0))  # left stick Y
     servo3 = nudge_axis(-js.get_axis(1))  # right stick X
     servo4 = nudge_axis(js.get_axis(4))   # right stick Y

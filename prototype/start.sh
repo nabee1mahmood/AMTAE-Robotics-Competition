@@ -1,6 +1,6 @@
 #!/bin/bash
 
-cd /home/x/code/AMTAE-Robotics-Competition/prototype || exit 1
+cd /home/x/Downloads/uafs/AMTAE-Robotics-Competition/prototype|| exit 1
 
 echo "▶️ Starting udp.py..."
 /usr/bin/python3 udp.py &

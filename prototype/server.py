@@ -5,8 +5,8 @@ import atexit
 
 app = Flask(__name__)
 
-RUN_SCRIPT = "/home/x/code/AMTAE-Robotics-Competition/prototype/start.sh"
-STOP_SCRIPT = "/home/x/code/AMTAE-Robotics-Competition/prototype/stop.sh"
+RUN_SCRIPT = "/home/x/Downloads/uafs/AMTAE-Robotics-Competition/prototype/start.sh"
+STOP_SCRIPT = "/home/x/Downloads/uafs/AMTAE-Robotics-Competition/prototype/stop.sh"
 
 running = False  # track robot state
 

@@ -19,7 +19,12 @@ servos = [servo_a, servo_b, servo_c, servo_d]
 # Current + target angles
 angles  = {ch: 90 for ch in servos}   # start centered
 targets = angles.copy()
-speeds  = {ch: 5 for ch in servos}
+speeds  = {
+    servo_a: 3,
+    servo_b: 5,
+    servo_c: 7,
+    servo_d: 1
+}
 ALIVE = True
 
 servo_map = {'1': servo_a, '2': servo_b, '3': servo_c, '4': servo_d}

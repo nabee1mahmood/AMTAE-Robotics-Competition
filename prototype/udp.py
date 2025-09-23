@@ -1,4 +1,3 @@
-# pi_servos.py
 import socket, serial, threading, time
 from driver_servo import set_servo_angle, pwm
 
@@ -29,7 +28,8 @@ def servo_update(ch, ang):
     set_servo_angle(ch, ang)
     angles[ch] = ang
 
-def servo_worker(ch, hz=60):
+def servo_worker(ch, hz=60, start_delay=0):
+    time.sleep(start_delay)   # 🔹 staggered startup
     period = 1.0 / hz
     while ALIVE:
         cur, tgt = angles[ch], targets[ch]
@@ -40,15 +40,24 @@ def servo_worker(ch, hz=60):
             servo_update(ch, cur)
         time.sleep(period)
 
-for ch in servos:
-    threading.Thread(target=servo_worker, args=(ch,), daemon=True).start()
-
 def kill():
     global ALIVE
     ALIVE = False
     print("🔻 Releasing servos...")
     for ch in servos:
         pwm.setServoPulse(ch, 0)
+
+# --- Stagger servo threads ---
+startup_delay = 3  # wait 3 sec after boot
+print(f"⏳ Waiting {startup_delay}s before engaging servos...")
+time.sleep(startup_delay)
+
+for i, ch in enumerate(servos):
+    threading.Thread(
+        target=servo_worker,
+        args=(ch, 60, i),   # stagger each servo by 1s
+        daemon=True
+    ).start()
 
 try:
     while True:
@@ -82,3 +91,5 @@ except KeyboardInterrupt:
     ser.close()
     sock.close()
     print("👋 Exiting cleanly")
+
+

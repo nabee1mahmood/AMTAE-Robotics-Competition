@@ -1,5 +1,7 @@
 from flask import Flask, jsonify
 import subprocess, psutil
+import RPi.GPIO as GPIO
+import atexit
 
 app = Flask(__name__)
 
@@ -7,6 +9,17 @@ RUN_SCRIPT = "/home/x/code/AMTAE-Robotics-Competition/prototype/start.sh"
 STOP_SCRIPT = "/home/x/code/AMTAE-Robotics-Competition/prototype/stop.sh"
 
 running = False  # track robot state
+
+# --- GPIO Setup ---
+LED_PIN = 18
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(LED_PIN, GPIO.OUT)
+
+def cleanup():
+    GPIO.output(LED_PIN, GPIO.LOW)
+    GPIO.cleanup()
+
+atexit.register(cleanup)
 
 @app.route("/toggle", methods=["POST"])
 def toggle_robot():
@@ -106,4 +119,7 @@ def index():
     """
 
 if __name__ == "__main__":
+    # Turn LED ON when Flask server is alive
+    GPIO.output(LED_PIN, GPIO.HIGH)
+    print("💡 LED ON: Flask server running")
     app.run(host="0.0.0.0", port=8080)

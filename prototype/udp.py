@@ -1,4 +1,4 @@
-import socket, serial, threading, time
+import socket, serial, time
 from driver_servo import set_servo_angle, pwm
 
 # --- Serial for Nano motors ---
@@ -13,88 +13,50 @@ sock.bind((UDP_IP, UDP_PORT))
 print(f"📡 Listening on {UDP_PORT}...")
 
 # --- Servo channels ---
-servo_a, servo_b, servo_c, servo_d = 12, 13, 14, 15
-servos = [servo_a, servo_b, servo_c, servo_d]
+claw_servo, servo_a, servo_b = 12, 13, 14
+servos = [servo_a, servo_b, claw_servo]
 
-# Current + target angles
-angles  = {ch: 90 for ch in servos}   # start centered
-targets = angles.copy()
-speeds  = {
-    servo_a: 3,
-    servo_b: 5,
-    servo_c: 7,
-    servo_d: 1
+# Current angles
+angles = {ch: 90 for ch in servos}   # start centered
+
+# Per-servo speed multipliers (smaller = slower movement)
+servo_speed = {
+    servo_a: 0.3,     # 30% of incoming step
+    servo_b: 0.5,     # 50% of incoming step
+    claw_servo: 1.0   # full speed for claw
 }
-ALIVE = True
 
-servo_map = {'1': servo_a, '2': servo_b, '3': servo_c, '4': servo_d}
-
-def servo_update(ch, ang):
-    set_servo_angle(ch, ang)
-    angles[ch] = ang
-
-def servo_worker(ch, hz=60, start_delay=0):
-    time.sleep(start_delay)   # 🔹 staggered startup
-    period = 1.0 / hz
-    while ALIVE:
-        cur, tgt = angles[ch], targets[ch]
-        if cur != tgt:
-            diff = tgt - cur
-            step = max(1, abs(diff) // speeds[ch])
-            cur += step if diff > 0 else -step
-            servo_update(ch, cur)
-        time.sleep(period)
-
-def kill():
-    global ALIVE
-    ALIVE = False
-    print("🔻 Releasing servos...")
-    for ch in servos:
-        pwm.setServoPulse(ch, 0)
-
-# --- Stagger servo threads ---
-startup_delay = 3  # wait 3 sec after boot
-print(f"⏳ Waiting {startup_delay}s before engaging servos...")
-time.sleep(startup_delay)
-
-for i, ch in enumerate(servos):
-    threading.Thread(
-        target=servo_worker,
-        args=(ch, 60, i),   # stagger each servo by 1s
-        daemon=True
-    ).start()
+def clamp(val, lo=0, hi=180):
+    return max(lo, min(hi, val))
 
 try:
     while True:
         data, addr = sock.recvfrom(1024)
         try:
-            left_spd, right_spd, s1, s2, s3, s4 = map(int, data.decode().strip().split(","))
+            # Expect: left,right,s1,s2,claw
+            left_spd, right_spd, s1, s2, claw = map(int, data.decode().strip().split(","))
 
-            # --- Drive motors (send signed speeds to Nano) ---
+            # --- Drive motors ---
             ser.write(f"{left_spd},{right_spd}\n".encode())
 
-            # --- Apply servo nudges (deltas) ---
-            steps = {
-                servo_map['1']: s1,
-                servo_map['2']: s2,
-                servo_map['3']: s3,
-                servo_map['4']: s4,
-            }
-            for ch, delta in steps.items():
-                new_ang = max(0, min(180, angles[ch] + delta))
-                targets[ch] = new_ang
+            # --- Apply scaled servo deltas ---
+            angles[servo_a] = clamp(angles[servo_a] + int(s1 * servo_speed[servo_a]))
+            angles[servo_b] = clamp(angles[servo_b] + int(s2 * servo_speed[servo_b]))
+            angles[claw_servo] = clamp(int(claw * servo_speed[claw_servo]))  # absolute
 
-            print(f"Left={left_spd} Right={right_spd} | "
-                  f"S1={angles[servo_a]} S2={angles[servo_b]} "
-                  f"S3={angles[servo_c]} S4={angles[servo_d]}")
+            # Send to hardware
+            for ch in servos:
+                set_servo_angle(ch, angles[ch])
+
+            print(f"Motors: L={left_spd} R={right_spd} | "
+                  f"S1={angles[servo_a]} S2={angles[servo_b]} Claw={angles[claw_servo]}")
 
         except Exception as e:
-            print("Parse error:", e)
+            print("Parse error:", e, "raw:", data)
 
 except KeyboardInterrupt:
-    kill()
+    print("👋 Exiting...")
     ser.close()
     sock.close()
-    print("👋 Exiting cleanly")
-
-
+    for ch in servos:
+        pwm.setServoPulse(ch, 0)

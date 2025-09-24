@@ -24,7 +24,8 @@ while True:
 
     # --- Tank drive with D-Pad + RT throttle ---
     hat_x, hat_y = js.get_hat(0)
-    rt = js.get_axis(5)
+    rt = js.get_axis(5)   # RT: -1 → +1
+    lt= js.get_axis(2)   # LT: -1 → +1
     throttle = (rt + 1) / 2
     base_speed = 100
     speed_val = int(base_speed * throttle)
@@ -40,12 +41,14 @@ while True:
         left_speed, right_speed = speed_val, -speed_val
 
     # --- Joysticks give scaled nudges ---
-    servo1 = nudge_axis(js.get_axis(3))   # left stick X
-    servo2 = nudge_axis(-js.get_axis(0))  # left stick Y
-    servo3 = nudge_axis(-js.get_axis(1))  # right stick X
-    servo4 = nudge_axis(js.get_axis(4))   # right stick Y
+    servo2 = nudge_axis(-js.get_axis(4))   
+    servo1 = nudge_axis(-js.get_axis(0))    
 
-    msg = f"{left_speed},{right_speed},{servo1},{servo2},{servo3},{servo4}"
+    # --- Claw mapped to RT ---
+    # Scale rt (-1 → +1) to 0–100, treat as % open
+    claw_open = int(((lt + 1) / 2) * 50)
+
+    msg = f"{left_speed},{right_speed},{servo1},{servo2},{claw_open}"
     sock.sendto(msg.encode(), (PI_IP, PI_PORT))
     print("➡️", msg)
 

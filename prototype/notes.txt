@@ -1,0 +1,15 @@
+[Unit]
+Description=robot service
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/python3 /home/x/Downloads/uafs/AMTAE-Robotics-Competition/prototype/server.py
+WorkingDirectory=/home/x/Downloads/uafs/AMTAE-Robotics-Competition/prototype
+StandardOutput=journal
+StandardError=journal
+Restart=always
+User=x    
+Environment="PYTHONUNBUFFERED=1"
+
+[Install]
+WantedBy=multi-user.target

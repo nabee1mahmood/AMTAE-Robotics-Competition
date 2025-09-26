@@ -14,6 +14,7 @@ config = picam2.create_video_configuration(
 picam2.configure(config)
 picam2.start()
 
+
 def gen_frames():
     while True:
         frame = picam2.capture_array()
@@ -26,14 +27,18 @@ def gen_frames():
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
 
+
 @app.route('/video')
 def video_feed():
     return Response(gen_frames(),
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 
+
 @app.route('/')
 def index():
     return '<img src="/video" width="640" style="transform: rotate(180deg);"/>'
+
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000, threaded=True)

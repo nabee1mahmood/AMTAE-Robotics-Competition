@@ -1,0 +1,23 @@
+[Unit]
+Description=server
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/python3 /home/x/prototype/server.py
+WorkingDirectory=/home/x/prototype
+StandardOutput=inherit
+StandardError=inherit
+Restart=always
+User=x
+
+[Install]
+WantedBy=multi-user.target
+
+
+sudo systemctl daemon-reload
+sudo systemctl enable server.service
+sudo systemctl start server.service
+sudo systemctl stop server.service
+
+
+systemctl status server.service
